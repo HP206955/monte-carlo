@@ -1,0 +1,9 @@
+﻿release_no,release_date,release_label,release_day,period_start_date,release_cadence,cadence
+1,2025-10-01T00:00,Current Release,Wednesday,2025-09-18T00:00,1,Biweekly
+2,2025-10-15T00:00,Future Release 1,Wednesday,2025-10-02T00:00,1,Biweekly
+3,2025-10-29T00:00,Future Release 2,Wednesday,2025-10-16T00:00,1,Biweekly
+4,2025-11-12T00:00,Future Release 3,Wednesday,2025-10-30T00:00,1,Biweekly
+1,2025-09-22T00:00,Current Release,Monday,2025-09-16T00:00,2,Weekly
+2,2025-09-29T00:00,Future Release 1,Monday,2025-09-23T00:00,2,Weekly
+3,2025-10-06T00:00,Future Release 2,Monday,2025-09-30T00:00,2,Weekly
+4,2025-10-13T00:00,Future Release 3,Monday,2025-10-07T00:00,2,Weekly
