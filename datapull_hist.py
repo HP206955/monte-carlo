@@ -123,7 +123,7 @@ def fetch_filtered_jira_issues(jira):
                         json_result=True,
                     )
                     this_batch_issue = batch["issues"]
-                    print(this_batch_issue)
+                    print(this_batch_issue[0].keys())
                     break
                     # all_issues.extend(this_batch_issue)
                     # total_fetched += len(this_batch_issue)
