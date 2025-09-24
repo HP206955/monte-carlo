@@ -5,7 +5,6 @@ import datetime
 
 
 def monte_carlo_simulation(historical_throughput, forecast_days=14, simulations=1000):
-    # Placeholder for Monte Carlo simulation logic
     all_forecasts = []
     for sim in range(simulations):
         daily_forecast = []
