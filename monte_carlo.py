@@ -28,51 +28,101 @@ def monte_carlo_simulation(historical_throughput, forecast_days=14, simulations=
     return results
 
 
-throughput = pd.read_csv("throughput.csv")
-teams = throughput.groupby("team")
-release_cadences = pd.read_csv("release_cadences.csv")
-periods = release_cadences.groupby("cadence")
-team_cadences = {
-    "Connect Partner API": "Weekly",
-    "Integrations Platform": "Biweekly",
-    "Customer Management": "Biweekly",
-    "Integrations API": "Biweekly",
-    "Mobile": "Biweekly",
-    "Order Create": "Biweekly",
-    "Personalization": "Biweekly",
-    "Products & Pricing": "Biweekly",
-    "Integrations Enabling": "Biweekly",
-    "Order Management": "Biweekly",
-    "Order Submit & Ingest": "Biweekly",
-    "Experience Enhancements": "Biweekly",
-    "Platform Engineering": "Biweekly",
-}
+def get_forecasted_throughput(
+    throughput_csv="throughput.csv",
+    release_cadences_csv="release_cadences.csv",
+    relevant_range=60,
+    simulations=1000,
+):
+    throughput = pd.read_csv(throughput_csv)
+    release_cadences = pd.read_csv(release_cadences_csv)
+    teams = throughput.groupby("team")
+    periods = release_cadences.groupby("cadence")
+    is_biweekly_team = {
+        "Connect Partner API": 0,
+        "Integrations Platform": 1,
+        "Customer Management": 1,
+        "Integrations API": 1,
+        "Mobile": 1,
+        "Order Create": 1,
+        "Personalization": 1,
+        "Products & Pricing": 1,
+        "Integrations Enabling": 1,
+        "Order Management": 1,
+        "Order Submit & Ingest": 1,
+        "Experience Enhancements": 1,
+        "Platform Engineering": 1,
+    }
+    forecast = []
+    for team_name in is_biweekly_team.keys():
+        release_date = datetime.datetime.strptime(
+            periods.first().loc[
+                "Biweekly" if is_biweekly_team[team_name] else "Weekly", "release_date"
+            ],
+            "%Y-%m-%dT%H:%M",
+        ).date()
+        print(f"Next release date: {release_date}")
+        days_until_release = abs(release_date - datetime.date.today()).days
+        print(f"Days until next release: {days_until_release}")
+        if team_name not in teams.groups:
+            forecast.append(
+                [
+                    team_name,
+                    0,
+                    0,
+                    days_until_release,
+                    0,
+                ]
+            )
+            continue
+        group = teams.get_group(team_name)
+        if group.shape[0] < relevant_range:
+            print(
+                f"Skipping team {team_name} due to insufficient data ({group.shape[0]} entries)"
+            )
+            continue
+        print(f"Team: {team_name}")
+        print(group)
+        print("\n")
+        historical_throughput = group["throughput"].tolist()
+        relevant_ht = historical_throughput[-relevant_range:]
+        print(
+            f"Relevant historical throughput (last {relevant_range} entries): {relevant_ht}"
+        )
+        current_forecast = monte_carlo_simulation(
+            relevant_ht, forecast_days=days_until_release, simulations=simulations
+        )
+        future_forecast = monte_carlo_simulation(
+            relevant_ht,
+            forecast_days=14 * (is_biweekly_team[team_name] + 1),
+            simulations=simulations,
+        )
+        forecast.append(
+            [
+                team_name,
+                int(future_forecast["_85_pt"]),
+                int(future_forecast["_70_pt"]),
+                days_until_release,
+                int(current_forecast["_85_pt"]),
+            ]
+        )
+    return forecast
 
-for team_name, group in teams:
-    print(f"Team: {team_name}")
-    print(group)
-    print("\n")
-    historical_throughput = group["throughput"].tolist()
-    relevant_range = 60
-    relevant_ht = historical_throughput[-relevant_range:]
-    print(
-        f"Relevant historical throughput (last {relevant_range} entries): {relevant_ht}"
-    )
-    release_date = datetime.datetime.strptime(
-        periods.first().loc[team_cadences[team_name], "release_date"], "%Y-%m-%dT%H:%M"
-    ).date()
-    print(f"Next release date: {release_date}")
-    days_until_release = abs(release_date - datetime.date.today()).days
-    print(f"Days until next release: {days_until_release}")
-    current_forecast = monte_carlo_simulation(
-        relevant_ht, forecast_days=days_until_release, simulations=1000
-    )
-    print(
-        f"Forecasted throughput for next {days_until_release} days: {current_forecast}"
-    )
-    future_forcast = monte_carlo_simulation(
-        relevant_ht,
-        forecast_days=14 if team_cadences[team_name] == "Biweekly" else 7,
-        simulations=1000,
-    )
-    print(f"Forecasted throughput for next period: {future_forcast}")
+
+RELEVANT_RANGE = 30  # days
+future_forecast = get_forecasted_throughput(relevant_range=RELEVANT_RANGE)
+print(f"Forecasted throughput for next release: {future_forecast}")
+
+df = pd.DataFrame(
+    future_forecast,
+    columns=[
+        "team_name",
+        "_85_pt",
+        "_70_pt",
+        "days_until_release",
+        "current_period_forecast",
+    ],
+)
+df.sort_values(by="_85_pt", inplace=True)
+print(df)
+df.to_csv("raw_format_dual.csv", index=False)
