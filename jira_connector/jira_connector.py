@@ -24,7 +24,7 @@ jira = JIRA(
 print("Connected to Jira successfully!")
 
 
-# Fetch all tickets from the last 12 months
+# Fetch all tickets from the last 18 months
 relevant_project_keys = [
     "PS2",
     "ITE",
@@ -78,12 +78,12 @@ historical_field_list = {
 }
 
 # Print field names and IDs
+MAX_FETCH = None  # Limit the total number of issues fetched for testing
 data = [list(historical_field_list.keys())]
 chunk_size = 100
 all_issues = []
 i = 1
 nextPageToken = None
-MAX_FETCH = None  # Limit the total number of issues fetched for testing
 while True:
     issues = jira.enhanced_search_issues(
         jql_query,
@@ -106,14 +106,6 @@ while True:
         break
     nextPageToken = issues["nextPageToken"]
     i += 1
-
-test = []
-for issue in all_issues:
-    test.append([issue["key"]])
-
-test_df = pd.DataFrame(test, columns=["Issue Key"])
-print("test num unique", len(test_df["Issue Key"].unique()))
-
 
 for issue in all_issues:
     row = []
@@ -148,7 +140,9 @@ for issue in all_issues:
                 "Done",
             ]:
                 continue
-            for field in status_change_data[0][1:]:
+            for field in status_change_data[0]:
+                if field == "ID":
+                    continue
                 try:
                     if field == "Status Change Date":
                         value = datetime.strptime(
@@ -168,7 +162,7 @@ df = df.merge(status_change_df, on="ID", how="left")
 historical_df = df.copy()
 print(historical_df)
 print(f"Total unique issues: {len(historical_df["ID"].unique())}")
-historical_df.to_csv("jira_issues_historical.csv", index=False)
+historical_df.to_csv("jira_issues_historical.csv",path_or_buf="/data", index=False)
 
 status_map = {
     "In Refinement": "In_Refinement",
