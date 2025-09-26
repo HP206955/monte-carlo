@@ -1,7 +1,6 @@
 import pandas as pd
 import datetime
-from monte_carlo import monte_carlo_simulation
-
+from . import monte_carlo_simulation
 
 def get_raw_forecasted_throughput(
     throughput_csv="throughput.csv",
@@ -51,11 +50,6 @@ def get_raw_forecasted_throughput(
             )
             continue
         group = teams.get_group(team_name)
-        if group.shape[0] < relevant_range:
-            print(
-                f"Skipping team {team_name} due to insufficient data ({group.shape[0]} entries)"
-            )
-            continue
         group = group.sort_values(by="date_day", ascending=False)
         print(f"Team: {team_name}")
         print(group)
@@ -70,7 +64,7 @@ def get_raw_forecasted_throughput(
         )
         future_forecast = monte_carlo_simulation.simulates(
             relevant_ht,
-            forecast_days=14 * (is_biweekly_team[team_name] + 1),
+            forecast_days=7 * (is_biweekly_team[team_name] + 1),
             simulations=simulations,
         )
         forecast.append(
@@ -108,4 +102,4 @@ def get_forcasted_throughput(
         ],
     )
     df.sort_values(by="_85_pt", inplace=True)
-    df.to_csv("data/raw_format_dual.csv", index=False)
+    return df
