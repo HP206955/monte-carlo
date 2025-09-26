@@ -1,34 +1,9 @@
 import pandas as pd
-import numpy as np
-import random
 import datetime
-
-pd.set_option('display.max_rows', 500)
-
-def monte_carlo_simulation(historical_throughput, forecast_days=14, simulations=1000):
-    all_forecasts = []
-    for sim in range(simulations):
-        daily_forecast = []
-        for day in range(forecast_days):
-            # Sample directly from all historical data (including zeros)
-            daily_throughput = random.choice(historical_throughput)
-            daily_forecast.append(daily_throughput)
-        # Calculate total for this simulation
-        total_throughput = sum(daily_forecast)
-        all_forecasts.append(total_throughput)
-    # Calculate only the requested percentiles
-    results = {
-        "_70_pt": np.percentile(
-            all_forecasts, 30
-        ),  # There’s a 70% chance we’ll exceed this number
-        "_85_pt": np.percentile(
-            all_forecasts, 15
-        ),  # There’s an 85% chance we’ll exceed this number
-    }
-    return results
+from monte_carlo import monte_carlo_simulation
 
 
-def get_forecasted_throughput(
+def get_raw_forecasted_throughput(
     throughput_csv="throughput.csv",
     release_cadences_csv="release_cadences.csv",
     relevant_range=60,
@@ -90,10 +65,10 @@ def get_forecasted_throughput(
         print(
             f"Relevant historical throughput (last {relevant_range} entries): {relevant_ht}"
         )
-        current_forecast = monte_carlo_simulation(
+        current_forecast = monte_carlo_simulation.simulates(
             relevant_ht, forecast_days=days_until_release, simulations=simulations
         )
-        future_forecast = monte_carlo_simulation(
+        future_forecast = monte_carlo_simulation.simulates(
             relevant_ht,
             forecast_days=14 * (is_biweekly_team[team_name] + 1),
             simulations=simulations,
@@ -110,20 +85,27 @@ def get_forecasted_throughput(
     return forecast
 
 
-RELEVANT_RANGE = 30  # days
-future_forecast = get_forecasted_throughput(relevant_range=RELEVANT_RANGE)
-print(f"Forecasted throughput for next release: {future_forecast}")
+def get_forcasted_throughput(
+    relevant_range=60,
+    throughput_csv="throughput.csv",
+    release_cadences_csv="release_cadences.csv",
+):
+    future_forecast = get_raw_forecasted_throughput(
+        relevant_range=relevant_range,
+        throughput_csv=throughput_csv,
+        release_cadences_csv=release_cadences_csv,
+    )
+    print(f"Forecasted throughput for next release: {future_forecast}")
 
-df = pd.DataFrame(
-    future_forecast,
-    columns=[
-        "team_name",
-        "_85_pt",
-        "_70_pt",
-        "days_until_release",
-        "current_period_forecast",
-    ],
-)
-df.sort_values(by="_85_pt", inplace=True)
-print(df)
-df.to_csv("raw_format_dual.csv", index=False)
+    df = pd.DataFrame(
+        future_forecast,
+        columns=[
+            "team_name",
+            "_85_pt",
+            "_70_pt",
+            "days_until_release",
+            "current_period_forecast",
+        ],
+    )
+    df.sort_values(by="_85_pt", inplace=True)
+    df.to_csv("data/raw_format_dual.csv", index=False)
