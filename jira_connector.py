@@ -48,7 +48,7 @@ historical_field_list = {
     "Title": lambda issue: issue["fields"]["summary"],
     "Backlog": lambda issue: datetime.strptime(
         issue["fields"]["created"].split("T")[0], "%Y-%m-%d"
-    ).date(),
+    ).date(),  # TODO: Confirm if this is the correct field for Backlog date
     "Current_Status_Category": lambda issue: issue["fields"]["status"]["name"],
     "Item_Rank": lambda issue: issue["fields"]["customfield_10000"],
     "Updated": lambda issue: datetime.strptime(
@@ -65,7 +65,7 @@ historical_field_list = {
     "Assignee": lambda issue: issue["fields"]["assignee"]["displayName"],
     "Reporter": lambda issue: issue["fields"]["reporter"]["displayName"],
     "Project": lambda issue: issue["fields"]["project"]["key"],
-    "Resolution": lambda issue: issue["fields"]["resolution"]["name"],
+    "Resolution": lambda issue: issue["fields"]["resolution"]["name"].upper(),
     "Labels": lambda issue: (
         f"[{"|".join(issue["fields"]["labels"])}]" if issue["fields"]["labels"] else ""
     ),
@@ -73,31 +73,15 @@ historical_field_list = {
     "Blocked": lambda issue: "FALSE",  # TODO: Ask about this field
     "Parent": lambda issue: issue["fields"]["parent"]["key"],
     "done_datetime": lambda issue: issue["fields"]["resolutiondate"],
-    "Status Change Date": lambda: "",
-    "Status Change From": lambda: "",
-    "Status Change To": lambda: "",
 }
 
-# flattened_field_list = historical_field_list
-# flattened_field_list.update(
-#     {
-#         "Backlog": lambda: "",
-#         "In_Refinement": lambda: "",
-#         "Ready": lambda: "",
-#         "In_Progress": lambda: "",
-#         "In_Review": lambda: "",
-#         "Ready_for_QA": lambda: "",
-#         "In_QA": lambda: "",
-#         "Done": lambda: "",
-#     }
-# )
 # Print field names and IDs
 data = [list(historical_field_list.keys())]
 chunk_size = 100
 all_issues = []
-total_fetched = 0
 i = 1
 nextPageToken = None
+MAX_FETCH = 500  # Limit the total number of issues fetched for testing
 while True:
     issues = jira.enhanced_search_issues(
         jql_query,
@@ -109,31 +93,47 @@ while True:
     )
     this_batch_issue = issues["issues"]
     all_issues.extend(this_batch_issue)
-    total_fetched += len(this_batch_issue)
     print(
-        f"Retrieved batch {i}: {len(this_batch_issue)} issues. Total fetched: {total_fetched}"
+        f"Retrieved batch {i}: {len(this_batch_issue)} issues. Total fetched: {len(all_issues)}"
     )
-    if issues["isLast"]:
+    if issues["isLast"] or len(all_issues) >= MAX_FETCH:
         print("Reached end of results for this date range.")
         break
     nextPageToken = issues["nextPageToken"]
     i += 1
 
+test = []
+for issue in all_issues:
+    test.append([issue["key"]])
+
+test_df = pd.DataFrame(test, columns=["Issue Key"])
+print(len(test_df["Issue Key"].unique()))
+
+
+for issue in all_issues:
+    row = []
+    for field in historical_field_list:
+        try:
+            value = historical_field_list[field](issue)
+        except Exception as e:
+            value = ""
+        row.append(value)
+    data.append(row)
+
+status_change_data = [
+    ["ID",
+    "Status Change Date",
+    "Status Change From",
+    "Status Change To",]
+]
+
 for issue in all_issues:
     for status_change in issue["changelog"]["histories"]:
         for status_item in status_change["items"]:
-            row = []
-            if status_item["field"] != "status" or status_item["toString"] not in [
-                "In Refinement",
-                "Ready",
-                "In Progress",
-                "In Review",
-                "Ready for QA",
-                "In QA",
-                "Done",
-            ]:
-                break
-            for field in historical_field_list:
+            row = [issue["key"]]
+            if status_item["field"] != "status":
+                continue
+            for field in status_change_data[0][1:]:
                 try:
                     if field == "Status Change Date":
                         value = datetime.strptime(
@@ -143,15 +143,17 @@ for issue in all_issues:
                         value = status_item["fromString"]
                     elif field == "Status Change To":
                         value = status_item["toString"]
-                    else:
-                        value = historical_field_list[field](issue)
                 except Exception as e:
                     value = ""
                 row.append(value)
-            data.append(row)
+            status_change_data.append(row)
 df = pd.DataFrame(data[1:], columns=data[0])
+status_change_df = pd.DataFrame(status_change_data[1:], columns=status_change_data[0])
+print(status_change_df)
+
 historical_df = df
 print(historical_df)
+print(f"Total unique issues: {len(historical_df["ID"].unique())}")
 historical_df.to_csv("jira_issues_historical.csv", index=False)
 
 status_map = {
@@ -186,4 +188,5 @@ pivoted_df = pd.merge(
 )
 
 print(pivoted_df)
+print(f"Total unique issues after pivot: {len(pivoted_df['ID'].unique())}")
 pivoted_df.to_csv("jira_issues_pivoted.csv", index=False)
