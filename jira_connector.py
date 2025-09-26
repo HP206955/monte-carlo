@@ -81,7 +81,7 @@ chunk_size = 100
 all_issues = []
 i = 1
 nextPageToken = None
-MAX_FETCH = 500  # Limit the total number of issues fetched for testing
+MAX_FETCH = None  # Limit the total number of issues fetched for testing
 while True:
     issues = jira.enhanced_search_issues(
         jql_query,
@@ -96,7 +96,10 @@ while True:
     print(
         f"Retrieved batch {i}: {len(this_batch_issue)} issues. Total fetched: {len(all_issues)}"
     )
-    if issues["isLast"] or len(all_issues) >= MAX_FETCH:
+    if MAX_FETCH and len(all_issues) >= MAX_FETCH:
+        print(f"Reached max fetch limit of {MAX_FETCH}. Stopping.")
+        break
+    if issues["isLast"]:
         print("Reached end of results for this date range.")
         break
     nextPageToken = issues["nextPageToken"]
@@ -107,7 +110,7 @@ for issue in all_issues:
     test.append([issue["key"]])
 
 test_df = pd.DataFrame(test, columns=["Issue Key"])
-print(len(test_df["Issue Key"].unique()))
+print("test num unique", len(test_df["Issue Key"].unique()))
 
 
 for issue in all_issues:
@@ -121,17 +124,27 @@ for issue in all_issues:
     data.append(row)
 
 status_change_data = [
-    ["ID",
-    "Status Change Date",
-    "Status Change From",
-    "Status Change To",]
+    [
+        "ID",
+        "Status Change Date",
+        "Status Change From",
+        "Status Change To",
+    ]
 ]
 
 for issue in all_issues:
     for status_change in issue["changelog"]["histories"]:
         for status_item in status_change["items"]:
             row = [issue["key"]]
-            if status_item["field"] != "status":
+            if status_item["field"] != "status" or status_item["toString"] not in [
+                "In Refinement",
+                "Ready",
+                "In Progress",
+                "In Review",
+                "Ready for QA",
+                "In QA",
+                "Done",
+            ]:
                 continue
             for field in status_change_data[0][1:]:
                 try:
@@ -149,9 +162,8 @@ for issue in all_issues:
             status_change_data.append(row)
 df = pd.DataFrame(data[1:], columns=data[0])
 status_change_df = pd.DataFrame(status_change_data[1:], columns=status_change_data[0])
-print(status_change_df)
-
-historical_df = df
+df = df.merge(status_change_df, on="ID", how="left")
+historical_df = df.copy()
 print(historical_df)
 print(f"Total unique issues: {len(historical_df["ID"].unique())}")
 historical_df.to_csv("jira_issues_historical.csv", index=False)
@@ -179,12 +191,14 @@ pivoted_df = (
     .rename_axis(None, axis=1)
 )
 pivoted_df = pivoted_df.rename(columns=status_map)
+print("pivoted_df before merge", pivoted_df)
 pivoted_df = pd.merge(
     historical_df.drop(
         ["Status Change Date", "Status Change From", "Status Change To"], axis=1
     ).drop_duplicates(),
     pivoted_df,
     on="ID",
+    how="left",
 )
 
 print(pivoted_df)
