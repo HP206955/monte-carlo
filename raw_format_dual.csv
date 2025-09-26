@@ -1,14 +1,14 @@
 team_name,_85_pt,_70_pt,days_until_release,current_period_forecast
-Connect Partner API,0,0,5,0
-Integrations Platform,0,0,7,0
-Personalization,0,0,7,0
-Mobile,0,0,7,0
-Order Submit & Ingest,0,0,7,0
-Platform Engineering,0,0,7,0
-Experience Enhancements,0,0,7,0
-Integrations API,1,2,7,0
-Order Create,9,12,7,1
-Integrations Enabling,9,12,7,1
-Customer Management,10,11,7,1
-Products & Pricing,15,18,7,2
-Order Management,38,48,7,6
+Connect Partner API,2,3,4,0
+Mobile,13,17,6,1
+Integrations Enabling,17,20,6,2
+Integrations API,22,25,6,3
+Order Create,25,33,6,3
+Order Submit & Ingest,26,30,6,4
+Customer Management,28,32,6,4
+Integrations Platform,30,35,6,4
+Products & Pricing,31,36,6,4
+Personalization,36,41,6,4
+Order Management,40,47,6,5
+Platform Engineering,100,111,6,16
+Experience Enhancements,305,351,6,46
