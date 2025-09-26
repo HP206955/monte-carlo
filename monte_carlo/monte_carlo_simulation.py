@@ -2,7 +2,7 @@ import random
 import numpy as np
 
 
-def monte_carlo_simulation(historical_throughput, forecast_days=14, simulations=1000):
+def simulates(historical_throughput, forecast_days=14, simulations=1000):
     all_forecasts = []
     for sim in range(simulations):
         daily_forecast = []

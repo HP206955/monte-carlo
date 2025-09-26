@@ -65,10 +65,10 @@ def get_raw_forecasted_throughput(
         print(
             f"Relevant historical throughput (last {relevant_range} entries): {relevant_ht}"
         )
-        current_forecast = monte_carlo_simulation(
+        current_forecast = monte_carlo_simulation.simulates(
             relevant_ht, forecast_days=days_until_release, simulations=simulations
         )
-        future_forecast = monte_carlo_simulation(
+        future_forecast = monte_carlo_simulation.simulates(
             relevant_ht,
             forecast_days=14 * (is_biweekly_team[team_name] + 1),
             simulations=simulations,
@@ -108,4 +108,4 @@ def get_forcasted_throughput(
         ],
     )
     df.sort_values(by="_85_pt", inplace=True)
-    df.to_csv("raw_format_dual.csv", path_or_buf="/data", index=False)
+    df.to_csv("data/raw_format_dual.csv", index=False)
