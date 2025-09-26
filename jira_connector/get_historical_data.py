@@ -161,4 +161,4 @@ def get():
     df = df.merge(status_change_df, on="ID", how="left")
     print(df)
     print(f"Total unique issues: {len(df["ID"].unique())}")
-    df.to_csv("data/jira_issues_historical.csv", index=False)
+    return df

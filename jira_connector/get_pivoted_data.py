@@ -40,3 +40,4 @@ def get(csv_path="data/jira_issues_historical.csv"):
     print(pivoted_df)
     print(f"Total unique issues after pivot: {len(pivoted_df['ID'].unique())}")
     pivoted_df.to_csv("data/jira_issues_pivoted.csv", index=False)
+    return pivoted_df
