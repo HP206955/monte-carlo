@@ -49,7 +49,9 @@ historical_field_list = {
     "Backlog": lambda issue: datetime.strptime(
         issue["fields"]["created"].split("T")[0], "%Y-%m-%d"
     ).date(),  # TODO: Confirm if this is the correct field for Backlog date
-    "Current_Status_Category": lambda issue: issue["fields"]["status"]["name"],
+    "Current_Status_Category": lambda issue: issue["fields"]["status"]["name"]
+    .upper()
+    .replace(" ", "_"),  # TODO: "Development In Progress"?
     "Item_Rank": lambda issue: issue["fields"]["customfield_10000"],
     "Updated": lambda issue: datetime.strptime(
         issue["fields"]["updated"].split("T")[0], "%Y-%m-%d"
@@ -65,7 +67,7 @@ historical_field_list = {
     "Assignee": lambda issue: issue["fields"]["assignee"]["displayName"],
     "Reporter": lambda issue: issue["fields"]["reporter"]["displayName"],
     "Project": lambda issue: issue["fields"]["project"]["key"],
-    "Resolution": lambda issue: issue["fields"]["resolution"]["name"].upper(),
+    "Resolution": lambda issue: issue["fields"]["resolution"]["name"],
     "Labels": lambda issue: (
         f"[{"|".join(issue["fields"]["labels"])}]" if issue["fields"]["labels"] else ""
     ),

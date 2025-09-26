@@ -3,6 +3,7 @@ import numpy as np
 import random
 import datetime
 
+pd.set_option('display.max_rows', 500)
 
 def monte_carlo_simulation(historical_throughput, forecast_days=14, simulations=1000):
     all_forecasts = []
@@ -80,11 +81,12 @@ def get_forecasted_throughput(
                 f"Skipping team {team_name} due to insufficient data ({group.shape[0]} entries)"
             )
             continue
+        group = group.sort_values(by="date_day", ascending=False)
         print(f"Team: {team_name}")
         print(group)
         print("\n")
         historical_throughput = group["throughput"].tolist()
-        relevant_ht = historical_throughput[-relevant_range:]
+        relevant_ht = historical_throughput[:relevant_range]
         print(
             f"Relevant historical throughput (last {relevant_range} entries): {relevant_ht}"
         )
